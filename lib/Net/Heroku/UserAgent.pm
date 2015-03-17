@@ -5,7 +5,6 @@ use Mojo::URL;
 has 'host';
 has 'tx';
 has 'api_key';
-has 'is_abs';
 
 sub build_tx {
   my $self   = shift;
