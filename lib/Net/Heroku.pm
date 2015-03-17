@@ -69,7 +69,7 @@ sub create {
   my ($self, %params) = (shift, @_);
 
   # Empty space names no longer allowed
-  #delete $params{name} if !$params{name};
+  delete $params{name} if !$params{name};
 
   my @ar = map +("app[$_]" => $params{$_}) => keys %params;
   %params = (
@@ -77,6 +77,7 @@ sub create {
     @ar,
   );
 
+  
   my $res = $self->ua->post('/apps' => form => \%params)->res;
 
   return $res->json && $res->code == 202 ? %{$res->json} : ();

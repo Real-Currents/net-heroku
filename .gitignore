@@ -1,3 +1,4 @@
+Makefile*
 .prove
 cover_db
 Net-Heroku-?.??
