@@ -1,18 +1,27 @@
-use strict;
+#!/usr/bin/perl
 use warnings;
+use strict;
 use Test::More tests => 9;
 use Net::Heroku;
 
 use constant TEST => $ENV{TEST_ONLINE};
 
-my $username = 'cpantests@empireenterprises.com';
-my $password = 'third13_wave';
-my $api_key  = 'd46d2e0a23e9dd1746d24f88ba6c52206246fb1f';
+BEGIN { unshift( @INC, ".."); }
+require '.net-heroku';
+print <<CREDS;
+user: $Net::Heroku::Config::username
+pass: $Net::Heroku::Config::password
+aKey: $Net::Heroku::Config::api_key
+CREDS
+
+my $username = $Net::Heroku::Config::username;
+my $password = $Net::Heroku::Config::password;
+my $api_key  = $Net::Heroku::Config::api_key;
 
 ok my $h = Net::Heroku->new(api_key => $api_key);
 
 subtest auth => sub {
-  plan skip_all => 'because' unless TEST;
+  #plan skip_all => 'because' unless TEST;
 
   is +Net::Heroku->new->_retrieve_api_key($username, $password) => $api_key;
   is +Net::Heroku->new(email => $username, password => $password)
@@ -22,7 +31,7 @@ subtest auth => sub {
 };
 
 subtest errors => sub {
-  plan skip_all => 'because' unless TEST;
+  #plan skip_all => 'because' unless TEST;
 
   # No error
   ok my %res = $h->create;
@@ -107,8 +116,7 @@ subtest config => sub {
 subtest keys => sub {
   plan skip_all => 'because' unless TEST;
 
-  my $key =
-    'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQCwiIC7DZYfPbSn/O82ei262gnExmsvx27nkmNgl5scyYhJjwMkZrl66zofAkwsydxl+7fNfKio+FsdutNva4yVruk011fzKU+Nsa5jEe0MF/x0e6QwBLtq9QthWomgvoNccV9g3TkkjykCFQQ7aLId1Wur0B+MzwCIVZ5Cm/+K2w== cpantests-net-heroku';
+  my $key = $Net::Heroku::Config::key;
 
   ok $h->add_key(key => $key);
   ok grep $_->{contents} eq $key => $h->keys;
@@ -142,36 +150,36 @@ subtest processes => sub {
 };
 
 subtest releases => sub {
-  #plan skip_all => 'because' unless TEST;
+	#plan skip_all => 'because' unless TEST;
 
-  ok my %res = $h->create('name', 'test-app');
+	ok my %res = $h->create('name' => 'heroku-perl-try-'. time());
 
-  # Wait until server process finishes adding add-ons (v2 release)
-  for (1 .. 5) {
-    last if $h->releases(name => $res{name}) == 2;
-    sleep 1;
-  }
+	# Wait until server process finishes adding add-ons (v2 release)
+	for (1 .. 5) {
+		last if $h->releases(name => $res{name}) == 2;
+		sleep 1;
+	}
 
-  # Add buildpack to increment release
-  ok $h->add_config(
-    name          => $res{name},
-    BUILDPACK_URL => 'http://github.com/tempire/perloku.git'
-  );
+	# Add buildpack to increment release
+	ok $h->add_config(
+		name          => $res{name},
+		BUILDPACK_URL => 'http://github.com/tempire/perloku.git'
+	);
 
-  # List of releases
-  my @releases = $h->releases(name => $res{name});
-  ok grep $_->{descr} eq 'Set BUILDPACK_URL config vars' => @releases;
+	# List of releases
+	my @releases = $h->releases(name => $res{name});
+	ok grep $_->{descr} eq 'Set BUILDPACK_URL config vars' => @releases;
 
-  # One release by name
-  my %release = $h->releases(name => $res{name}, release => $releases[-1]{name});
-  is $release{name} => $releases[-1]{name};
+	# One release by name
+	my %release = $h->releases(name => $res{name}, release => $releases[-1]{name});
+	is $release{name} => $releases[-1]{name};
 
-  # Rollback to a previous release
-  my $previous_release = 'v' . (int @releases - 1);
-  is $h->rollback(name => $res{name}, release => $previous_release) => $previous_release;
-  ok !$h->rollback(name => $res{name}, release => 'v0');
+	# Rollback to a previous release
+	my $previous_release = 'v' . (int @releases - 1);
+	is $h->rollback(name => $res{name}, release => $previous_release) => $previous_release;
+	ok !$h->rollback(name => $res{name}, release => 'v0');
 
-  ok $h->destroy(name => $res{name});
+	ok $h->destroy(name => $res{name});
 };
 
 done_testing;

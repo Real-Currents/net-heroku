@@ -4,3 +4,4 @@ cover_db
 Net-Heroku-?.??
 .build
 .DS_Store
+.net-heroku

@@ -66,21 +66,21 @@ sub destroy {
 }
 
 sub create {
-  my ($self, %params) = (shift, @_);
+	my $self = shift;
+	my %params = @_ if( @_ );
 
-  # Empty space names no longer allowed
-  #delete $params{name} if !$params{name};
+	# Empty space names no longer allowed
+	#delete $params{name} if !$params{name};
 
-  my @ar = map +("app[$_]" => $params{$_}) => keys %params;
-  %params = (
-    'app[stack]' => 'cedar',
-    @ar,
-  );
+	my @ar = map +("app[$_]" => $params{$_}) => keys %params;
+	%params = (
+		'app[stack]' => 'cedar',
+		@ar
+	);
 
-  
-  my $res = $self->ua->post('/apps' => form => \%params)->res;
+	my $res = $self->ua->post('/apps' => form => \%params)->res;
 
-  return $res->json && $res->code == 202 ? %{$res->json} : ();
+	return $res->json && $res->code == 202 ? %{$res->json} : ();
 }
 
 sub add_config {

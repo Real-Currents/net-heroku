@@ -1,0 +1,9 @@
+{ package Net::Heroku::Config;
+# These are only example values, so this file should be copied to '.net-heroku'
+# Please create an account on https://heroku.com and assign your own creds to these vars
+$username = 'cpantests@empireenterprises.com';
+$password = 'third13_wave';
+$api_key  = 'd46d2e0a23e9dd1746d24f88ba6c52206246fb1f';
+$ssh_key  = 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQCwiIC7DZYfPbSn/O82ei262gnExmsvx27nkmNgl5scyYhJjwMkZrl66zofAkwsydxl+7fNfKio+FsdutNva4yVruk011fzKU+Nsa5jEe0MF/x0e6QwBLtq9QthWomgvoNccV9g3TkkjykCFQQ7aLId1Wur0B+MzwCIVZ5Cm/+K2w== cpantests-net-heroku';
+return 1;
+}
