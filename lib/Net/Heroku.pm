@@ -105,9 +105,12 @@ sub config {
 
 sub add_key {
   my ($self, %params) = (shift, @_);
+  
+  my $res =  $self->ua->post('/user/keys' => $params{key})->res;
+  print $res->body;
 
   return 1
-    if $self->ua->post('/user/keys' => $params{key})->res->{code} == 200;
+    if $res->{code} == 200;
 }
 
 sub keys {

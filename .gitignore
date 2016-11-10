@@ -1,7 +1,9 @@
 Makefile*
-.prove
-cover_db
-Net-Heroku-?.??
+MYMETA*
+Net-Heroku*
 .build
 .DS_Store
-.net-heroku
+.heroku
+.prove
+blib
+cover_db

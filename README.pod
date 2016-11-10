@@ -160,6 +160,18 @@ In list context, returns hash with keys: code, message.
 
 If the last request was successful, returns empty list.
 
+=head1 TEST
+
+When building/installing, all tests in t/heroku.t will be skipped unless there is a .heroku file present in the build directory. This file should have the following content:
+
+    { package Net::Heroku::Config;
+      $username = '<heroku-email/username>';
+      $password = '<heroku-password>';
+      $api_key  = '<heroku-api-key>';
+      $ssh_key  = '<heroku-public-ssh-key>';
+      return 1;
+    }
+
 =head1 SEE ALSO
 
 L<Mojo::UserAgent>, L<http://mojolicio.us/perldoc/Mojo/UserAgent#DEBUGGING>, L<https://api-docs.heroku.com/>

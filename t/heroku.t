@@ -7,21 +7,35 @@ use Net::Heroku;
 use constant TEST => $ENV{TEST_ONLINE};
 
 BEGIN { unshift( @INC, ".."); }
-require '.net-heroku';
-print <<CREDS;
+
+my $heroku_creds = 0;
+
+SKIP: {
+    eval "require '.heroku'";
+
+    unless ($@) {
+        $heroku_creds = 1;
+
+        print STDERR <<CREDS;
+
 user: $Net::Heroku::Config::username
 pass: $Net::Heroku::Config::password
-aKey: $Net::Heroku::Config::api_key
+apiK: $Net::Heroku::Config::api_key
+sshK: $Net::Heroku::Config::ssh_key
 CREDS
+    }
+}
 
 my $username = $Net::Heroku::Config::username;
 my $password = $Net::Heroku::Config::password;
 my $api_key  = $Net::Heroku::Config::api_key;
+my $ssh_key  = $Net::Heroku::Config::ssh_key;
 
 ok my $h = Net::Heroku->new(api_key => $api_key);
 
 subtest auth => sub {
   #plan skip_all => 'because' unless TEST;
+  plan skip_all => 'No creds' unless $heroku_creds;
 
   is +Net::Heroku->new->_retrieve_api_key($username, $password) => $api_key;
   is +Net::Heroku->new(email => $username, password => $password)
@@ -32,6 +46,7 @@ subtest auth => sub {
 
 subtest errors => sub {
   #plan skip_all => 'because' unless TEST;
+  plan skip_all => 'No creds' unless $heroku_creds;
 
   # No error
   ok my %res = $h->create;
@@ -63,7 +78,8 @@ subtest errors => sub {
 };
 
 subtest domains => sub {
-  plan skip_all => 'because' unless TEST;
+  #plan skip_all => 'because' unless TEST;
+  plan skip_all => 'No creds' unless $heroku_creds;
 
   ok my %res = $h->create;
 
@@ -84,7 +100,8 @@ subtest domains => sub {
 };
 
 subtest apps => sub {
-  plan skip_all => 'because' unless TEST;
+  #plan skip_all => 'because' unless TEST;
+  plan skip_all => 'No creds' unless $heroku_creds;
 
   ok my %res = $h->create(stack => 'cedar');
   like $res{stack} => qr/^cedar/;
@@ -101,7 +118,8 @@ subtest apps => sub {
 };
 
 subtest config => sub {
-  plan skip_all => 'because' unless TEST;
+  #plan skip_all => 'because' unless TEST;
+  plan skip_all => 'No creds' unless $heroku_creds;
 
   ok my %res = $h->create;
 
@@ -114,19 +132,24 @@ subtest config => sub {
 };
 
 subtest keys => sub {
-  plan skip_all => 'because' unless TEST;
+  #plan skip_all => 'because' unless TEST;
+  plan skip_all => 'No creds' unless $heroku_creds;
 
-  my $key = $Net::Heroku::Config::key;
+  my $key = $ssh_key;
+  my ($key_name) = $ssh_key =~ /ssh-rsa\s[\w|\+|\-|\_|\.|\\|\/]+\s([\w|\@|\-|\_|\.|\s]+)$/;
+
+  #print STDERR "key_name: $key_name\n";
 
   ok $h->add_key(key => $key);
   ok grep $_->{contents} eq $key => $h->keys;
 
-  $h->remove_key(key_name => 'cpantests-net-heroku');
+  $h->remove_key(key_name => $key_name);
   ok !grep $_->{contents} eq $key => $h->keys;
 };
 
 subtest processes => sub {
-  plan skip_all => 'because' unless TEST;
+  #plan skip_all => 'because' unless TEST;
+  plan skip_all => 'No creds' unless $heroku_creds;
 
   ok my %res = $h->create;
 
@@ -138,48 +161,49 @@ subtest processes => sub {
   is { $h->run(name => $res{name}, command => 'ls') }->{state} => 'starting';
 
   # Restart app
-  ok $h->restart(name => $res{name}), 'restart app';
+  ok $h->restart(name => $res{name});
 
-  # Restart process
-  ok $h->restart(name => $res{name}, ps => 'ls'), 'restart app process';
+  # Restart process, NOTE: Deprecated?
+  #ok $h->restart(name => $res{name}, ps => 'ls'), 'restart app process';
 
-  # Stop process
-  ok $h->stop(name => $res{name}, ps => 'ls'), 'stop app process';
+  # Stop process, NOTE: Deprecated?
+  #ok $h->stop(name => $res{name}, ps => 'ls'), 'stop app process';
 
   ok $h->destroy(name => $res{name});
 };
 
 subtest releases => sub {
-	#plan skip_all => 'because' unless TEST;
+  #plan skip_all => 'because' unless TEST;
+  plan skip_all => 'No creds' unless $heroku_creds;
 
-	ok my %res = $h->create('name' => 'heroku-perl-try-'. time());
+  ok my %res = $h->create('name' => 'heroku-perl-try-'. time());
 
-	# Wait until server process finishes adding add-ons (v2 release)
-	for (1 .. 5) {
-		last if $h->releases(name => $res{name}) == 2;
-		sleep 1;
-	}
+  # Wait until server process finishes adding add-ons (v2 release)
+  for (1 .. 5) {
+    last if $h->releases(name => $res{name}) == 2;
+    sleep 1;
+  }
 
-	# Add buildpack to increment release
-	ok $h->add_config(
-		name          => $res{name},
-		BUILDPACK_URL => 'http://github.com/tempire/perloku.git'
-	);
+  # Add buildpack to increment release
+  ok $h->add_config(
+    name          => $res{name},
+    BUILDPACK_URL => 'http://github.com/tempire/perloku.git'
+  );
 
-	# List of releases
-	my @releases = $h->releases(name => $res{name});
-	ok grep $_->{descr} eq 'Set BUILDPACK_URL config vars' => @releases;
+  # List of releases
+  my @releases = $h->releases(name => $res{name});
+  ok grep $_->{descr} eq 'Set BUILDPACK_URL config vars' => @releases;
 
-	# One release by name
-	my %release = $h->releases(name => $res{name}, release => $releases[-1]{name});
-	is $release{name} => $releases[-1]{name};
+  # One release by name
+  my %release = $h->releases(name => $res{name}, release => $releases[-1]{name});
+  is $release{name} => $releases[-1]{name};
 
-	# Rollback to a previous release
-	my $previous_release = 'v' . (int @releases - 1);
-	is $h->rollback(name => $res{name}, release => $previous_release) => $previous_release;
-	ok !$h->rollback(name => $res{name}, release => 'v0');
+  # Rollback to a previous release
+  my $previous_release = 'v' . (int @releases - 1);
+  is $h->rollback(name => $res{name}, release => $previous_release) => $previous_release;
+  ok !$h->rollback(name => $res{name}, release => 'v0');
 
-	ok $h->destroy(name => $res{name});
+  ok $h->destroy(name => $res{name});
 };
 
 done_testing;
